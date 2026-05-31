@@ -1,0 +1,8 @@
+/assignment
+.env
+__pycache__/
+*.pyc
+outputs/
+traces/
+.venv/
+.DS_Store
