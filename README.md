@@ -41,6 +41,24 @@ Run the automated test suite:
 uv run pytest tests/ -v
 ```
 
+## Observability with .NET Aspire Dashboard
+This project integrates OpenTelemetry to monitor agent workflows and track LLM calls, latency, and token usage.
+
+1. **Start the Aspire Dashboard:**
+   Make sure you have Docker installed and running, then spin up the dashboard container:
+   ```bash
+   docker compose up -d
+   ```
+2. **Open the Dashboard UI:**
+   Navigate to [http://localhost:18888](http://localhost:18888) to access the dashboard.
+3. **Capture Traces:**
+   Run the assistant workflow normally:
+   ```bash
+   uv run python -m crew.crew "What is the return policy?"
+   ```
+   Traces will automatically export to the dashboard's OTLP endpoint (`http://localhost:4317`) for visual inspection under the **Traces** tab.
+
+
 ## Project Documentation
 Additional design documentation and reflections are available in the [docs/](./docs/) folder:
 - [Decision Log](./docs/decision_log.md): Outlines architectural decisions, framework selections, and alternatives considered or rejected.

@@ -1,20 +1,44 @@
-import sys
 import io
-from pathlib import Path
-from datetime import datetime
+import os
+import sys
 from contextlib import redirect_stdout
-from crewai import Crew, Process
-from crewai_tools import MCPServerAdapter
-from .agents import build_agents, SERVER_PARAMS
-from .tasks import build_tasks
+from datetime import datetime
+from pathlib import Path
+
+import litellm
 from dotenv import load_dotenv
+from opentelemetry import trace
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 import crewai.llms.cache as _crewai_cache
+from crewai import Crew, Process
+from crewai_tools import MCPServerAdapter
+
+from .agents import SERVER_PARAMS, build_agents
+from .tasks import build_tasks
+
+# Load environment variables
+load_dotenv()
 
 # Monkey-patch to prevent 'cache_breakpoint' from being added to messages (Groq unsupported property bug)
 _crewai_cache.mark_cache_breakpoint = lambda msg: msg
 
-load_dotenv()
+# OpenTelemetry Setup
+otel_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317")
+resource = Resource(attributes={"service.name": "operations-assistant-crew"})
+provider = TracerProvider(resource=resource)
+processor = BatchSpanProcessor(OTLPSpanExporter(endpoint=otel_endpoint, insecure=True))
+provider.add_span_processor(processor)
+
+# Bypass restriction and set the tracer provider
+trace._TRACER_PROVIDER = None
+trace.set_tracer_provider(provider)
+
+# Configure litellm to use OpenTelemetry
+litellm.callbacks = ["otel"]
 
 TRACES_DIR = Path(__file__).parent.parent / "traces"
 TRACES_DIR.mkdir(exist_ok=True)
