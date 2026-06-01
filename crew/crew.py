@@ -1,17 +1,77 @@
-import io
 import os
 import sys
-from contextlib import redirect_stdout
-from datetime import datetime
+import io
 from pathlib import Path
+from datetime import datetime
+from contextlib import redirect_stdout
 
-import litellm
 from dotenv import load_dotenv
+
+# 1. Load environment variables first
+load_dotenv()
+
+# 2. Setup OpenTelemetry BEFORE any other third-party imports!
+import logging
 from opentelemetry import trace
-from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
-from opentelemetry.sdk.resources import Resource
+from opentelemetry._logs import set_logger_provider
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
+from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
+from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
+from opentelemetry.sdk.resources import Resource
+
+otel_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317")
+resource = Resource(attributes={"service.name": "operations-assistant-crew"})
+
+# Trace configuration
+provider = TracerProvider(resource=resource)
+processor = BatchSpanProcessor(OTLPSpanExporter(endpoint=otel_endpoint, insecure=True))
+provider.add_span_processor(processor)
+
+# Bypass restriction and set the tracer provider globally
+trace._TRACER_PROVIDER = None
+trace.set_tracer_provider(provider)
+
+# Log configuration
+logger_provider = LoggerProvider(resource=resource)
+log_exporter = OTLPLogExporter(endpoint=otel_endpoint, insecure=True)
+logger_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
+set_logger_provider(logger_provider)
+
+# Attach OTLP Logging Handler to standard Python logging root logger
+handler = LoggingHandler(level=logging.INFO, logger_provider=logger_provider)
+logging.getLogger().addHandler(handler)
+logging.getLogger().setLevel(logging.INFO)
+
+# 3. NOW import litellm, crewai, and other dependencies
+import litellm
+
+# Custom OpenTelemetry callback for Litellm
+tracer = trace.get_tracer("litellm-custom-tracer")
+
+
+def custom_otel_success_callback(kwargs, completion_response, start_time, end_time):
+    model = kwargs.get("model", "unknown_model")
+    messages = kwargs.get("messages", [])
+
+    with tracer.start_as_current_span(f"litellm.completion: {model}") as span:
+        # Log input prompt
+        span.set_attribute("gen_ai.prompt", str(messages))
+
+        # Log output completion
+        if (
+            completion_response
+            and hasattr(completion_response, "choices")
+            and len(completion_response.choices) > 0
+        ):
+            content = completion_response.choices[0].message.content
+            span.set_attribute("gen_ai.completion", str(content))
+
+
+# Register the custom callback
+litellm.success_callback = [custom_otel_success_callback]
 
 import crewai.llms.cache as _crewai_cache
 from crewai import Crew, Process
@@ -20,25 +80,8 @@ from crewai_tools import MCPServerAdapter
 from .agents import SERVER_PARAMS, build_agents
 from .tasks import build_tasks
 
-# Load environment variables
-load_dotenv()
-
 # Monkey-patch to prevent 'cache_breakpoint' from being added to messages (Groq unsupported property bug)
 _crewai_cache.mark_cache_breakpoint = lambda msg: msg
-
-# OpenTelemetry Setup
-otel_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317")
-resource = Resource(attributes={"service.name": "operations-assistant-crew"})
-provider = TracerProvider(resource=resource)
-processor = BatchSpanProcessor(OTLPSpanExporter(endpoint=otel_endpoint, insecure=True))
-provider.add_span_processor(processor)
-
-# Bypass restriction and set the tracer provider
-trace._TRACER_PROVIDER = None
-trace.set_tracer_provider(provider)
-
-# Configure litellm to use OpenTelemetry
-litellm.callbacks = ["otel"]
 
 TRACES_DIR = Path(__file__).parent.parent / "traces"
 TRACES_DIR.mkdir(exist_ok=True)
@@ -74,6 +117,11 @@ def run_crew(question: str) -> str:
 
 if __name__ == "__main__":
     question = sys.argv[1] if len(sys.argv) > 1 else "What is the return policy?"
-    answer = run_crew(question)
-    print("\n FINAL ANSWER :")
-    print(answer)
+    try:
+        answer = run_crew(question)
+        print("\n FINAL ANSWER :")
+        print(answer)
+    finally:
+        # Flush and shutdown OTel providers
+        provider.shutdown()
+        logger_provider.shutdown()

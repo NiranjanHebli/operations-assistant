@@ -7,8 +7,8 @@ import sys
 import os
 
 SERVER_PARAMS = StdioServerParameters(
-    command="uv",
-    args=["run", "python", "server/mcp_server.py"],
+    command=sys.executable,
+    args=["server/mcp_server.py"],
 )
 
 
