@@ -10,6 +10,7 @@ from .tasks import build_tasks
 from dotenv import load_dotenv
 
 import crewai.llms.cache as _crewai_cache
+
 # Monkey-patch to prevent 'cache_breakpoint' from being added to messages (Groq unsupported property bug)
 _crewai_cache.mark_cache_breakpoint = lambda msg: msg
 
@@ -17,6 +18,7 @@ load_dotenv()
 
 TRACES_DIR = Path(__file__).parent.parent / "traces"
 TRACES_DIR.mkdir(exist_ok=True)
+
 
 def run_crew(question: str) -> str:
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -32,7 +34,7 @@ def run_crew(question: str) -> str:
                 agents=[researcher, writer],
                 tasks=tasks,
                 process=Process.sequential,
-                verbose=True,          # prints every agent step
+                verbose=True,  # prints every agent step
             )
 
             result = crew.kickoff()
@@ -40,10 +42,11 @@ def run_crew(question: str) -> str:
     trace_content = buffer.getvalue()
     trace_path.write_text(
         f"Question: {question}\n\nTrace:\n{trace_content}\n\nResult:\n{result}",
-        encoding="utf-8"
+        encoding="utf-8",
     )
     print(f"\n Trace saved to: {trace_path}")
     return str(result)
+
 
 if __name__ == "__main__":
     question = sys.argv[1] if len(sys.argv) > 1 else "What is the return policy?"

@@ -25,7 +25,7 @@ This is a multi-agent AI system (CrewAI) integrated with a Model Context Protoco
    ```bash
    uv run python -m crew.crew "What is the return policy?"
    ```
-   
+
 6. View generated traces in the `traces/` folder and generated reports in the `outputs/` folder.
 
 
