@@ -17,3 +17,16 @@ I rejected building custom Python scripts for reading the files in favor of usin
 
 ## 6. Why externalize agent and task configurations to YAML?
 Moving the prompt instructions, roles, backstories, and task descriptions out of the Python execution scripts (`crew/agents.py` and `crew/tasks.py`) into separate configuration files (`config/agents.yaml` and `config/tasks.yaml`) ensures a clean separation of concerns. This allows developers or prompt engineers to edit agent personas and task descriptions declaratively without touching executable Python code, making the system modular and scaling friendly.
+
+## 7. Why separate the Operations Server from the Fetch Server (Multiple MCP Servers)?
+- **Security**: Isolates local file/db access from internet-facing tools to enforce least-privilege permissions.
+- **Dependency Isolation**: Prevents bloating the core server with web-scraping packages and HTTP clients.
+- **Agent Focus**: Allocates only necessary tools to specific agents, reducing LLM tool confusion.
+
+## 8. Why clean up test/scratch files (like `test_litellm.py`)?
+- **Reduced Cognitive Load**: Eliminating temporary testing scripts and empty directories keeps the workspace clean and easy to navigate.
+- **CI/CD Efficiency**: Prevents linters, code formatters, and type checkers from running on non-production scratch files, ensuring faster commits and testing feedback loops.
+
+## 9. Why was LiteLLM required?
+- **Framework Standard**: CrewAI uses LiteLLM internally as its default translation layer for handling model APIs, allowing us to configure Groq (`groq/...`) seamlessly without custom API clients.
+- **Observability Hooks**: LiteLLM exposes a structured callback system (`litellm.success_callback`), enabling us to easily register custom OpenTelemetry tracing hooks to monitor and export LLM latency, token counts, and input/output payloads to the Aspire Dashboard.

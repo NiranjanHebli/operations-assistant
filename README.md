@@ -6,7 +6,20 @@
 [![Protocol](https://img.shields.io/badge/protocol-MCP-orange.svg)](https://modelcontextprotocol.io)
 
 ## What It Does
-This is a multi-agent AI system (CrewAI) integrated with a Model Context Protocol (MCP) server. The Assistant helps operations teams answer business questions automatically by querying local text documents and an inventory CSV without needing to manually look up files.
+This is a multi-agent AI system (CrewAI) integrated with multiple Model Context Protocol (MCP) servers. The Assistant helps operations teams answer business questions automatically by querying local text documents, inventory data, and fetching external web resources.
+
+## Architecture & MCP Servers
+The project runs **two separate MCP servers** using the Model Context Protocol stdio transport:
+1. **Core Operations Server (`server/mcp_server.py`)**:
+   - `search_documents`: Search local text documentation.
+   - `read_record`: Query product inventory records.
+   - `save_report`: Save structured Markdown reports to the `outputs/` folder.
+2. **Fetch Server (`server/mcp_fetch_server.py`)**:
+   - `fetch_url`: Retrieve and parse HTML content from external URLs (e.g. for operations research).
+
+Agents in the crew are specialized:
+- **Operations Researcher**: Equipped with the `fetch_url` tool to gather external web context, plus `search_documents` and `read_record` for internal details.
+- **Report Writer**: Equipped with the `save_report` tool to compile the findings.
 
 ## Quick Start
 1. Clone the repository
@@ -19,7 +32,7 @@ This is a multi-agent AI system (CrewAI) integrated with a Model Context Protoco
    ```bash
    cp .env.example .env
    ```
-   Open .env and add your GROQ_API_KEY
+   Open `.env` and add your `GROQ_API_KEY`
 
 5. Ask the Assistant a question:
    ```bash
@@ -28,11 +41,17 @@ This is a multi-agent AI system (CrewAI) integrated with a Model Context Protoco
 
 6. View generated traces in the `traces/` folder and generated reports in the `outputs/` folder.
 
-
-## Test the MCP Server Alone
+## Test the MCP Servers Alone
 You can inspect and test the MCP tools visually using the MCP Inspector:
+
+**Operations Server:**
 ```bash
 npx @modelcontextprotocol/inspector uv run python server/mcp_server.py
+```
+
+**Fetch Server:**
+```bash
+npx @modelcontextprotocol/inspector uv run python server/mcp_fetch_server.py
 ```
 
 ## Run Tests
@@ -41,8 +60,8 @@ Run the automated test suite:
 uv run pytest tests/ -v
 ```
 
-## Observability with .NET Aspire Dashboard
-This project integrates OpenTelemetry to monitor agent workflows and track LLM calls, latency, and token usage.
+## Observability & Custom Tracing
+This project integrates OpenTelemetry to monitor agent workflows and track LLM calls, latency, and token usage. Since `litellm[proxy]` has conflicting dependencies with CrewAI, we use a custom LiteLLM telemetry exporter directly in `crew/crew.py` to capture `gen_ai.prompt` and `gen_ai.completion` spans.
 
 1. **Start the Aspire Dashboard:**
    Make sure you have Docker installed and running, then spin up the dashboard container:
@@ -57,7 +76,6 @@ This project integrates OpenTelemetry to monitor agent workflows and track LLM c
    uv run python -m crew.crew "What is the return policy?"
    ```
    Traces will automatically export to the dashboard's OTLP endpoint (`http://localhost:4317`) for visual inspection under the **Traces** tab.
-
 
 ## Project Documentation
 Additional design documentation and reflections are available in the [docs/](./docs/) folder:

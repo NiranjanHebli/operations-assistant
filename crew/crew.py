@@ -1,27 +1,33 @@
+import io
+import logging
 import os
 import sys
-import io
-from pathlib import Path
-from datetime import datetime
 from contextlib import redirect_stdout
+from datetime import datetime
+from pathlib import Path
 
+import crewai.llms.cache as _crewai_cache
+import litellm
+from crewai import Crew, Process
+from crewai_tools import MCPServerAdapter
 from dotenv import load_dotenv
-
-# 1. Load environment variables first
-load_dotenv()
-
-# 2. Setup OpenTelemetry BEFORE any other third-party imports!
-import logging
 from opentelemetry import trace
 from opentelemetry._logs import set_logger_provider
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
-from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
 from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
+from .agents import FETCH_SERVER_PARAMS, SERVER_PARAMS, build_agents
+from .tasks import build_tasks
+
+# Load environment variables
+load_dotenv()
+
+# Setup OpenTelemetry
 otel_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317")
 resource = Resource(attributes={"service.name": "operations-assistant-crew"})
 
@@ -44,9 +50,6 @@ set_logger_provider(logger_provider)
 handler = LoggingHandler(level=logging.INFO, logger_provider=logger_provider)
 logging.getLogger().addHandler(handler)
 logging.getLogger().setLevel(logging.INFO)
-
-# 3. NOW import litellm, crewai, and other dependencies
-import litellm
 
 # Custom OpenTelemetry callback for Litellm
 tracer = trace.get_tracer("litellm-custom-tracer")
@@ -73,13 +76,6 @@ def custom_otel_success_callback(kwargs, completion_response, start_time, end_ti
 # Register the custom callback
 litellm.success_callback = [custom_otel_success_callback]
 
-import crewai.llms.cache as _crewai_cache
-from crewai import Crew, Process
-from crewai_tools import MCPServerAdapter
-
-from .agents import SERVER_PARAMS, build_agents
-from .tasks import build_tasks
-
 # Monkey-patch to prevent 'cache_breakpoint' from being added to messages (Groq unsupported property bug)
 _crewai_cache.mark_cache_breakpoint = lambda msg: msg
 
@@ -94,17 +90,18 @@ def run_crew(question: str) -> str:
 
     with redirect_stdout(buffer):
         with MCPServerAdapter(SERVER_PARAMS) as mcp_tools:
-            researcher, writer = build_agents(mcp_tools)
-            tasks = build_tasks(researcher, writer, question)
+            with MCPServerAdapter(FETCH_SERVER_PARAMS) as fetch_tools:
+                researcher, writer = build_agents(mcp_tools, fetch_tools)
+                tasks = build_tasks(researcher, writer, question)
 
-            crew = Crew(
-                agents=[researcher, writer],
-                tasks=tasks,
-                process=Process.sequential,
-                verbose=True,  # prints every agent step
-            )
+                crew = Crew(
+                    agents=[researcher, writer],
+                    tasks=tasks,
+                    process=Process.sequential,
+                    verbose=True,  # prints every agent step
+                )
 
-            result = crew.kickoff()
+                result = crew.kickoff()
 
     trace_content = buffer.getvalue()
     trace_path.write_text(

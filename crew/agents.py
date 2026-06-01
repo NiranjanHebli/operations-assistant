@@ -11,6 +11,11 @@ SERVER_PARAMS = StdioServerParameters(
     args=["server/mcp_server.py"],
 )
 
+FETCH_SERVER_PARAMS = StdioServerParameters(
+    command=sys.executable,
+    args=["server/mcp_fetch_server.py"],
+)
+
 
 def get_agents_config():
     config_path = Path(__file__).parent.parent / "config" / "agents.yaml"
@@ -18,12 +23,18 @@ def get_agents_config():
         return yaml.safe_load(f)
 
 
-def build_agents(mcp_tools: list) -> tuple[Agent, Agent]:
+def build_agents(mcp_tools: list, fetch_tools: list) -> tuple[Agent, Agent]:
     config = get_agents_config()
+
+    # Operations Researcher gets search & read tools from the main server PLUS the fetch tool
+    researcher_tools = [t for t in mcp_tools if t.name != "save_report"] + fetch_tools
+
+    # Report Writer ONLY gets the save_report tool
+    writer_tools = [t for t in mcp_tools if t.name == "save_report"]
 
     researcher = Agent(
         config=config["researcher"],
-        tools=mcp_tools,
+        tools=researcher_tools,
         llm=llama_instant,
         max_iter=5,  # prevent infinite loops
         verbose=True,
@@ -31,7 +42,7 @@ def build_agents(mcp_tools: list) -> tuple[Agent, Agent]:
 
     writer = Agent(
         config=config["writer"],
-        tools=mcp_tools,  # writer can also call save_report
+        tools=writer_tools,
         llm=llama_versatile,
         max_iter=3,
         verbose=True,
