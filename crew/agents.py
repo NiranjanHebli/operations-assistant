@@ -1,16 +1,18 @@
 from crewai import Agent
+from crewai_tools import MCPServerAdapter
 from .llm_config import llama_instant, llama_versatile
 from mcp import StdioServerParameters
+from mcp.client.sse import sse_client
 import yaml
 from pathlib import Path
 import sys
 import os
 
-SERVER_PARAMS = StdioServerParameters(
-    command=sys.executable,
-    args=["server/mcp_server.py"],
-)
+# Primary MCP server — connects via SSE (must be running before the crew starts)
+# Start it with: uv run python server/mcp_server.py
+SERVER_PARAMS = {"url": "http://localhost:8000/sse"}
 
+# Secondary fetch server — still uses Stdio (spawned inline by MCPServerAdapter)
 FETCH_SERVER_PARAMS = StdioServerParameters(
     command=sys.executable,
     args=["server/mcp_fetch_server.py"],

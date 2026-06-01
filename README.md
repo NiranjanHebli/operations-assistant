@@ -9,17 +9,18 @@
 This is a multi-agent AI system (CrewAI) integrated with multiple Model Context Protocol (MCP) servers. The Assistant helps operations teams answer business questions automatically by querying local text documents, inventory data, and fetching external web resources.
 
 ## Architecture & MCP Servers
-The project runs **two separate MCP servers** using the Model Context Protocol stdio transport:
-1. **Core Operations Server (`server/mcp_server.py`)**:
+The project runs **two separate MCP servers** using different transports:
+1. **Core Operations Server (`server/mcp_server.py`)** — runs over **SSE (Server-Sent Events)** on `http://localhost:8000/sse`:
    - `search_documents`: Search local text documentation.
    - `read_record`: Query product inventory records.
    - `save_report`: Save structured Markdown reports to the `outputs/` folder.
-2. **Fetch Server (`server/mcp_fetch_server.py`)**:
+2. **Fetch Server (`server/mcp_fetch_server.py`)** — runs over **Stdio** (spawned inline by the crew):
    - `fetch_url`: Retrieve and parse HTML content from external URLs (e.g. for operations research).
 
 Agents in the crew are specialized:
 - **Operations Researcher**: Equipped with the `fetch_url` tool to gather external web context, plus `search_documents` and `read_record` for internal details.
-- **Report Writer**: Equipped with the `save_report` tool to compile the findings.
+- **Report Writer**: Synthesises the Researcher's findings into a clean, structured Markdown report.
+- **Fact Checker**: Cross-references the draft report against retrieved evidence, corrects unsupported claims, and gates saving behind human approval (HITL).
 
 ## Quick Start
 1. Clone the repository
@@ -34,22 +35,33 @@ Agents in the crew are specialized:
    ```
    Open `.env` and add your `GROQ_API_KEY`
 
-5. Ask the Assistant a question:
+5. **Start the Core MCP server** (SSE mode) in a dedicated terminal:
+   ```bash
+   uv run python server/mcp_server.py
+   ```
+   You should see Uvicorn start up on `http://0.0.0.0:8000`. Keep this terminal open.
+
+6. In a **second terminal**, ask the Assistant a question:
    ```bash
    uv run python -m crew.crew "What is the return policy?"
    ```
 
-6. View generated traces in the `traces/` folder and generated reports in the `outputs/` folder.
+7. View generated traces in the `traces/` folder and generated reports in the `outputs/` folder.
 
 ## Test the MCP Servers Alone
-You can inspect and test the MCP tools visually using the MCP Inspector:
+You can inspect and test the MCP tools visually using the MCP Inspector.
 
-**Operations Server:**
+**Operations Server (SSE mode):**
+Start the server first, then connect the inspector to it:
 ```bash
-npx @modelcontextprotocol/inspector uv run python server/mcp_server.py
+# Terminal 1 — start SSE server
+uv run python server/mcp_server.py
+
+# Terminal 2 — connect inspector
+npx @modelcontextprotocol/inspector --cli http://localhost:8000/sse --transport sse
 ```
 
-**Fetch Server:**
+**Fetch Server (Stdio mode):**
 ```bash
 npx @modelcontextprotocol/inspector uv run python server/mcp_fetch_server.py
 ```

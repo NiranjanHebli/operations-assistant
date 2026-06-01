@@ -6,8 +6,8 @@ FastMCP offers a significantly more concise API, allowing tools to be written as
 ## 2. Why Llama 3.1 8B for Researcher, Llama 3.3 70B for Writer (via Groq)?
 Llama 3.1 8B on Groq is highly optimized for ultra-low latency inference and tool calling, making it ideal for the iterative loop the Researcher agent goes through. Llama 3.3 70B is more capable at complex reasoning and high-quality prose generation, which perfectly fits the Writer agent's role of synthesizing the gathered data into a clean report. The Groq API provides a fast, free-tier alternative that avoids OAuth/Vertex key restriction errors.
 
-## 3. Why stdio transport over SSE?
-Stdio transport is much simpler for a locally run tool where the MCP client (CrewAI in this case) and server reside on the same machine. It doesn't require allocating a network port or handling network related failures.
+## 3. Why switch from Stdio to SSE for the primary MCP server? (Stretch Goal #6)
+SSE transport separates the MCP server's lifecycle from the crew's Python process, making it a standalone HTTP service. This reflects a production-realistic architecture where MCP servers run as persistent microservices that multiple clients can connect to, rather than being tied to a single parent process. The Fetch Server remains on Stdio because it is lightweight, fire-and-forget, and benefits from being automatically managed by `MCPServerAdapter` without needing a separate terminal.
 
 ## 4. What did you try first that didn't work?
 Initial testing with the raw strings in `search_documents` and `save_report` didn't have robust validation. Pydantic models were added to enforce min/max length and path traversal sanitization, preventing potential runtime issues and ensuring secure file writing.

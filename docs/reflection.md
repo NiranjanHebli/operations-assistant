@@ -24,3 +24,6 @@ If I were deploying this to a real production environment, I'd definitely add a 
 2. **Read-Only Policies:** I'd enforce strict read-only database permissions for the data-fetching tools.
 3. **Human-in-the-loop (HITL) (Implemented):** We integrated an interactive human approval gate into the Verification task, prompting the user in the terminal to review and approve the final verified report draft before it gets written to disk.
 4. **Rate Limiting:** I'd add rate limits to make sure a runaway agent loop couldn't accidentally DDOS external APIs or thrash the local file system.
+
+## Why switch from Stdio to SSE for the primary MCP server?
+Switching to SSE (Server-Sent Events) transport decouples the MCP server lifecycle from the crew's Python process. With Stdio, the server lived entirely inside the crew's subprocess; killing the crew killed the server. With SSE, the Operations Server runs as an independent HTTP service that multiple clients could potentially connect to simultaneously. This is a much more realistic production deployment model — you'd run the MCP server as a persistent microservice (e.g. in Docker or on a VM) and have the crew connect over the network. The trade-off is that you must now start the server before running the crew, which is documented clearly in the README.

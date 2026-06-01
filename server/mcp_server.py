@@ -131,4 +131,6 @@ def save_report(title: str, content: str) -> str:
 
 
 if __name__ == "__main__":
-    mcp.run()
+    # Run as an SSE server on http://localhost:8000/sse
+    # Start with: uv run python server/mcp_server.py
+    mcp.run(transport="sse")
