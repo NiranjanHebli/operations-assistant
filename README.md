@@ -61,7 +61,7 @@ uv run pytest tests/ -v
 ```
 
 ## Observability & Custom Tracing
-This project integrates OpenTelemetry to monitor agent workflows and track LLM calls, latency, and token usage. Since `litellm[proxy]` has conflicting dependencies with CrewAI, we use a custom LiteLLM telemetry exporter directly in `crew/crew.py` to capture `gen_ai.prompt` and `gen_ai.completion` spans.
+This project integrates OpenTelemetry to monitor agent workflows and track LLM calls, latency, and token usage.
 
 1. **Start the Aspire Dashboard:**
    Make sure you have Docker installed and running, then spin up the dashboard container:

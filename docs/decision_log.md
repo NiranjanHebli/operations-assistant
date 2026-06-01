@@ -23,10 +23,6 @@ Moving the prompt instructions, roles, backstories, and task descriptions out of
 - **Dependency Isolation**: Prevents bloating the core server with web-scraping packages and HTTP clients.
 - **Agent Focus**: Allocates only necessary tools to specific agents, reducing LLM tool confusion.
 
-## 8. Why clean up test/scratch files (like `test_litellm.py`)?
-- **Reduced Cognitive Load**: Eliminating temporary testing scripts and empty directories keeps the workspace clean and easy to navigate.
-- **CI/CD Efficiency**: Prevents linters, code formatters, and type checkers from running on non-production scratch files, ensuring faster commits and testing feedback loops.
-
-## 9. Why was LiteLLM required?
+## 8. Why was LiteLLM required?
 - **Framework Standard**: CrewAI uses LiteLLM internally as its default translation layer for handling model APIs, allowing us to configure Groq (`groq/...`) seamlessly without custom API clients.
 - **Observability Hooks**: LiteLLM exposes a structured callback system (`litellm.success_callback`), enabling us to easily register custom OpenTelemetry tracing hooks to monitor and export LLM latency, token counts, and input/output payloads to the Aspire Dashboard.

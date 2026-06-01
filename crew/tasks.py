@@ -28,6 +28,7 @@ def build_tasks(researcher, writer, question: str) -> list[Task]:
         config=config["write_task"],
         agent=writer,
         context=[research_task],  # writer receives researcher's output
+        human_input=True,
     )
 
     return [research_task, write_task]
