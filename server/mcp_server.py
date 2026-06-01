@@ -1,10 +1,15 @@
 import os
 import csv
 import re
+import sys
 from pathlib import Path
 from datetime import datetime
 from mcp.server.fastmcp import FastMCP
 from pydantic import BaseModel, Field, field_validator
+
+# Allow importing utils from the project root
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from utils.injection_guard import sanitize as _sanitize_content
 
 DATA_DIR = Path(__file__).parent.parent / "data" / "documents"
 CSV_PATH = Path(__file__).parent.parent / "data" / "inventory.csv"
@@ -64,7 +69,9 @@ def search_documents(query: str) -> str:
             # Return first 300 chars of matching content as excerpt
             lines = [l for l in content.splitlines() if query_lower in l.lower()]
             excerpt = lines[0][:300] if lines else content[:300]
-            results.append(f"[{doc_path.name}]: {excerpt}")
+            # Layer 1 guardrail: redact injection payloads before returning to LLM
+            safe_excerpt = _sanitize_content(excerpt)
+            results.append(f"[{doc_path.name}]: {safe_excerpt}")
 
     if not results:
         return f"No documents found matching '{query}'."

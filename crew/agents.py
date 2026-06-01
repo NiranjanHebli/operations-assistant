@@ -1,12 +1,12 @@
+import sys
+from pathlib import Path
+
+import yaml
 from crewai import Agent
 from crewai_tools import MCPServerAdapter
-from .llm_config import llama_instant, llama_versatile
 from mcp import StdioServerParameters
-from mcp.client.sse import sse_client
-import yaml
-from pathlib import Path
-import sys
-import os
+
+from .llm_config import llama_instant, llama_versatile
 
 # Primary MCP server — connects via SSE (must be running before the crew starts)
 # Start it with: uv run python server/mcp_server.py
