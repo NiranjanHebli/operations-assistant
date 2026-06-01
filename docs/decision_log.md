@@ -26,3 +26,11 @@ Moving the prompt instructions, roles, backstories, and task descriptions out of
 ## 8. Why was LiteLLM required?
 - **Framework Standard**: CrewAI uses LiteLLM internally as its default translation layer for handling model APIs, allowing us to configure Groq (`groq/...`) seamlessly without custom API clients.
 - **Observability Hooks**: LiteLLM exposes a structured callback system (`litellm.success_callback`), enabling us to easily register custom OpenTelemetry tracing hooks to monitor and export LLM latency, token counts, and input/output payloads to the Aspire Dashboard.
+
+## 9. Why add a Fact Checker agent and a Verification task?
+- **Anti-Hallucination Guardrail**: Even with descriptive prompts, LLMs can introduce subtle factual errors or omit citations. The Fact Checker acts as a dedicated editor that compares the generated output directly with the retrieved evidence context, correcting discrepancies.
+- **Enforcing Least-Privilege Tools**: By transferring the `save_report` tool from the Writer to the Fact Checker, we ensure that a raw draft can never be saved directly without undergoing fact-checking and validation first.
+
+## 10. Why move the Human-in-the-Loop (HITL) approval to the Verification task?
+- **Ensuring High Quality Input for Human Review**: It is more efficient for the human auditor to review a fact-checked, validated report rather than a raw draft. Placing the gate at the Verification task ensures that the human only sees the final verified report before it is saved.
+- **Task-Level Tool Isolation**: To physically prevent the Fact Checker agent from saving the file before human approval is granted, we stripped the `save_report` tool from the agent-level configuration and assigned it strictly to a subsequent `save_task`. Because `save_task` runs after `verification_task` completes, the file can only be saved once the human approves the verification output.

@@ -16,6 +16,9 @@ from .tasks import build_tasks
 # Load environment variables
 load_dotenv()
 
+# Apply patches immediately on import
+apply_patches()
+
 TRACES_DIR = Path(__file__).parent.parent / "traces"
 TRACES_DIR.mkdir(exist_ok=True)
 
@@ -31,11 +34,14 @@ def run_crew(question: str) -> str:
     try:
         with MCPServerAdapter(SERVER_PARAMS) as mcp_tools:
             with MCPServerAdapter(FETCH_SERVER_PARAMS) as fetch_tools:
-                researcher, writer = build_agents(mcp_tools, fetch_tools)
-                tasks = build_tasks(researcher, writer, question)
+                researcher, writer, fact_checker = build_agents(mcp_tools, fetch_tools)
+                save_tool = [t for t in mcp_tools if t.name == "save_report"]
+                tasks = build_tasks(
+                    researcher, writer, fact_checker, question, save_tool
+                )
 
                 crew = Crew(
-                    agents=[researcher, writer],
+                    agents=[researcher, writer, fact_checker],
                     tasks=tasks,
                     process=Process.sequential,
                     verbose=True,  # prints every agent step
@@ -55,7 +61,6 @@ def run_crew(question: str) -> str:
 
 
 if __name__ == "__main__":
-    apply_patches()
     setup_telemetry()
 
     question = sys.argv[1] if len(sys.argv) > 1 else "What is the return policy?"

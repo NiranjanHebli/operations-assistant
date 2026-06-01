@@ -8,6 +8,18 @@ research_task:
 
 write_task:
   description: >
-    Using only the Researcher's findings, write a short operations report that answers the original question. Format: a one-paragraph summary, then a Sources section listing every document and record cited. Finally, call save_report to save the report to the outputs folder.
+    Using only the Researcher's findings, write a short operations report that answers the original question. Format: a one-paragraph summary, then a Sources section listing every document and record cited.
   expected_output: >
-    A markdown-formatted report with a summary paragraph and a Sources section. Confirmation that save_report was called successfully.
+    A markdown-formatted report with a summary paragraph and a Sources section.
+
+verification_task:
+  description: >
+    Review the drafted operations report (from the Report Writer) against the Researcher's findings. If any claims are unsupported, flag them and correct the report. Do NOT call any tools to save the report yet.
+  expected_output: >
+    A verified markdown-formatted report with a summary paragraph and a Sources section.
+
+save_task:
+  description: >
+    Take the verified operations report from the Verification task and save it to the outputs folder by calling the save_report tool.
+  expected_output: >
+    Confirmation that save_report was called successfully.

@@ -5,8 +5,10 @@ from crew.crew import run_crew
 import pytest
 
 
-@pytest.mark.skipif(not os.getenv("GOOGLE_API_KEY"), reason="No API key provided")
-def test_crew_answers_with_source():
+@pytest.mark.skipif(not os.getenv("GROQ_API_KEY"), reason="No API key provided")
+def test_crew_answers_with_source(monkeypatch):
+    # Mock builtins.input to automatically approve the report
+    monkeypatch.setattr("builtins.input", lambda *args, **kwargs: "y")
     answer = run_crew("What is the return policy?")
     # Answer must mention the source document
     assert "return_policy" in answer.lower() or "return" in answer.lower()

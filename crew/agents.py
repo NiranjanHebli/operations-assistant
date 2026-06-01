@@ -23,14 +23,17 @@ def get_agents_config():
         return yaml.safe_load(f)
 
 
-def build_agents(mcp_tools: list, fetch_tools: list) -> tuple[Agent, Agent]:
+def build_agents(mcp_tools: list, fetch_tools: list) -> tuple[Agent, Agent, Agent]:
     config = get_agents_config()
 
     # Operations Researcher gets search & read tools from the main server PLUS the fetch tool
     researcher_tools = [t for t in mcp_tools if t.name != "save_report"] + fetch_tools
 
-    # Report Writer ONLY gets the save_report tool
-    writer_tools = [t for t in mcp_tools if t.name == "save_report"]
+    # Report Writer does NOT get the save_report tool anymore
+    writer_tools = []
+
+    # Fact checker gets no agent-level tools (tool is passed at task-level to prevent saving before approval)
+    checker_tools = []
 
     researcher = Agent(
         config=config["researcher"],
@@ -48,4 +51,12 @@ def build_agents(mcp_tools: list, fetch_tools: list) -> tuple[Agent, Agent]:
         verbose=True,
     )
 
-    return researcher, writer
+    fact_checker = Agent(
+        config=config["fact_checker"],
+        tools=checker_tools,
+        llm=llama_instant,
+        max_iter=3,
+        verbose=True,
+    )
+
+    return researcher, writer, fact_checker
