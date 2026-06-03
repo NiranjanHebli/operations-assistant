@@ -13,6 +13,57 @@
 ## What It Does
 This is a multi-agent AI system (CrewAI) integrated with multiple Model Context Protocol (MCP) servers. The Assistant helps operations teams answer business questions automatically by querying local text documents, inventory data, and fetching external web resources.
 
+### Use Case diagram
+![Standard Use Case Diagram](./assets/standard_use_case.png)
+
+## Use Cases
+The Operations Assistant is designed to address key operational challenges across various business workflows:
+- **Internal Knowledge Retrieval & Support**: Automatically querying local standard operating procedures (SOPs), return policies, compliance documents, and support tickets in `data/documents/` to instantly answer team queries.
+- **Inventory Check & Verification**: Reading and analyzing structured data records (e.g., querying product lines in `data/inventory.csv` using the `read_record` tool) to verify stock levels, product specifications, and pricing.
+- **Outbound Web Research & Market Intelligence**: Utilizing the Stdio Fetch Server to parse external HTML pages, allowing operations teams to pull current competitor pricing, shipping options, or external vendor terms.
+- **Fact-Checked Operations Reports**: Generating structured reports (saved to the `outputs/` folder) with automated fact-checking and Human-in-the-Loop approval to prevent hallucinations in operational decisions.
+
+## Quick Start
+
+### Automated Setup
+The easiest way to initialize the project is by running the `setup.sh` shell script:
+```bash
+./setup.sh
+```
+This script automates the environment setup by performing the following tasks:
+- **Verifies python environment**: Checks if `pip` is installed on your machine.
+- **Installs package manager**: Installs the `uv` dependency manager (`pip install uv`) if not already present.
+- **Installs dependencies**: Runs `uv sync` to set up a virtual environment and install all project dependencies.
+- **Configures environment variables**: Safely checks if a `.env` file exists; if not, it copies `.env.example` to `.env` (or creates a blank one).
+
+After running, open the newly created `.env` file and add your `GROQ_API_KEY`.
+
+### Manual Setup
+1. Clone the repository
+
+2. Install uv: `pip install uv`
+
+3. Install dependencies: `uv sync`
+
+4. Set up your environment variables:
+   ```bash
+   cp .env.example .env
+   ```
+   Open `.env` and add your `GROQ_API_KEY`. (Optionally, also add your Langfuse keys to enable cloud tracing).
+
+5. **Start the Core MCP server** (SSE mode) in a dedicated terminal:
+   ```bash
+   uv run python server/mcp_server.py
+   ```
+   You should see Uvicorn start up on `http://0.0.0.0:8000`. Keep this terminal open.
+
+6. In a **second terminal**, ask the Assistant a question:
+   ```bash
+     uv run python -m crew.crew "What is the return policy?"
+   ```
+
+7. View generated traces in the `traces/` folder and generated reports in the `outputs/` folder.
+
 ## Architecture & MCP Servers
 
 ```mermaid
@@ -102,32 +153,6 @@ The repository includes a set of sample data used by the MCP servers to answer o
 - `data/documents/`: A folder containing small text files (e.g., policies, tickets). The `search_documents` tool searches through these files.
 - `data/inventory.csv`: A CSV file containing mock product inventory records. The `read_record` tool queries specific records from this file by their ID.
 
-## Quick Start
-1. Clone the repository
-
-2. Install uv: `pip install uv`
-
-3. Install dependencies: `uv sync`
-
-4. Set up your environment variables:
-   ```bash
-   cp .env.example .env
-   ```
-   Open `.env` and add your `GROQ_API_KEY`. (Optionally, also add your Langfuse keys to enable cloud tracing).
-
-5. **Start the Core MCP server** (SSE mode) in a dedicated terminal:
-   ```bash
-   uv run python server/mcp_server.py
-   ```
-   You should see Uvicorn start up on `http://0.0.0.0:8000`. Keep this terminal open.
-
-6. In a **second terminal**, ask the Assistant a question:
-   ```bash
-     uv run python -m crew.crew "What is the return policy?"
-   ```
-
-7. View generated traces in the `traces/` folder and generated reports in the `outputs/` folder.
-
 ## Test the MCP Servers Alone
 You can inspect and test the MCP tools visually using the MCP Inspector.
 
@@ -169,8 +194,17 @@ This project integrates OpenTelemetry to monitor agent workflows and track LLM c
    ```
    Traces will automatically export to the dashboard's OTLP endpoint (`http://localhost:4317`) for visual inspection under the **Traces** tab. They will also be sent to Langfuse if configured in your `.env`.
 
+## Future Scope
+The following features are planned for future releases to enhance scalability, usability, and integration:
+- **Interactive User Dashboard**: Building a sleek web UI (using React/Vite) to move away from terminal commands, allowing operations teams to interact with agents, edit drafts, and view logs dynamically.
+- **Enterprise Chat Integration**: Packaging the assistant as a Slack or Microsoft Teams bot to enable team-wide collaboration directly from existing chat channels.
+- **Production Database Connections**: Migrating MCP server data tools to query production relational databases (PostgreSQL, MySQL) and enterprise ERP systems (SAP, Salesforce).
+- **Multi-Modal Document Parsing**: Upgrading reasoning agents to handle invoices, charts, and scanned PDFs using multi-modal LLMs.
+
 ## Project Documentation
 Additional design documentation and reflections are available in the [docs/](./docs/) folder:
+
+- [Business Case Study](./docs/business_case_study.md): Details the losses teams previously faced, how the Operations Assistant mitigates them, and calculations projecting annual savings in Lakh rupees.
 - [Decision Log](./docs/decision_log.md): Outlines architectural decisions, framework selections, and alternatives considered or rejected.
 - [Reflection](./docs/reflection.md): Post-build reflection covering agent roles, connection debugging, security mitigations, and production readiness guidelines.
 - [AI Usage Log](./docs/ai_usage_log.md): Documentation of AI interactions applied during development.
