@@ -1,38 +1,64 @@
-from crewai import Agent
-from .llm_config import gemini_flash, gemini_pro
-from mcp import StdioServerParameters
-import yaml
-from pathlib import Path
 import sys
-import os
+from pathlib import Path
 
-SERVER_PARAMS = StdioServerParameters(
-    command="uv",
-    args=["run", "python", "server/mcp_server.py"],
+import yaml
+from crewai import Agent
+from crewai_tools import MCPServerAdapter
+from mcp import StdioServerParameters
+
+from .llm_config import llama_instant, llama_versatile
+
+# Primary MCP server — connects via SSE (must be running before the crew starts)
+# Start it with: uv run python server/mcp_server.py
+SERVER_PARAMS = {"url": "http://localhost:8000/sse"}
+
+# Secondary fetch server — still uses Stdio (spawned inline by MCPServerAdapter)
+FETCH_SERVER_PARAMS = StdioServerParameters(
+    command=sys.executable,
+    args=["server/mcp_fetch_server.py"],
 )
+
 
 def get_agents_config():
     config_path = Path(__file__).parent.parent / "config" / "agents.yaml"
     with open(config_path, "r", encoding="utf-8") as f:
         return yaml.safe_load(f)
 
-def build_agents(mcp_tools: list) -> tuple[Agent, Agent]:
+
+def build_agents(mcp_tools: list, fetch_tools: list) -> tuple[Agent, Agent, Agent]:
     config = get_agents_config()
+
+    # Operations Researcher gets search & read tools from the main server PLUS the fetch tool
+    researcher_tools = [t for t in mcp_tools if t.name != "save_report"] + fetch_tools
+
+    # Report Writer does NOT get the save_report tool anymore
+    writer_tools = []
+
+    # Fact checker gets no agent-level tools (tool is passed at task-level to prevent saving before approval)
+    checker_tools = []
 
     researcher = Agent(
         config=config["researcher"],
-        tools=mcp_tools,
-        llm=gemini_flash,
-        max_iter=5,        # prevent infinite loops
+        tools=researcher_tools,
+        llm=llama_instant,
+        max_iter=5,  # prevent infinite loops
         verbose=True,
     )
 
     writer = Agent(
         config=config["writer"],
-        tools=mcp_tools,   # writer can also call save_report
-        llm=gemini_pro,
+        tools=writer_tools,
+        llm=llama_versatile,
         max_iter=3,
         verbose=True,
     )
 
-    return researcher, writer
+    fact_checker = Agent(
+        config=config["fact_checker"],
+        tools=checker_tools,
+        llm=llama_instant,
+        max_iter=3,
+        verbose=True,
+    )
+
+    return researcher, writer, fact_checker

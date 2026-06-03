@@ -1,10 +1,15 @@
 import os
 import csv
 import re
+import sys
 from pathlib import Path
 from datetime import datetime
 from mcp.server.fastmcp import FastMCP
 from pydantic import BaseModel, Field, field_validator
+
+# Allow importing utils from the project root
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from utils.injection_guard import sanitize as _sanitize_content
 
 DATA_DIR = Path(__file__).parent.parent / "data" / "documents"
 CSV_PATH = Path(__file__).parent.parent / "data" / "inventory.csv"
@@ -13,13 +18,16 @@ OUTPUTS_DIR.mkdir(exist_ok=True)
 
 mcp = FastMCP("Operations Assistant")
 
+
 class SearchInput(BaseModel):
-    query: str = Field(..., min_length=1, max_length=500,
-                       description="Search term (1–500 characters)")
+    query: str = Field(
+        ..., min_length=1, max_length=500, description="Search term (1–500 characters)"
+    )
+
 
 class RecordInput(BaseModel):
-    record_id: int = Field(..., ge=1, le=9999,
-                           description="Positive integer record ID")
+    record_id: int = Field(..., ge=1, le=9999, description="Positive integer record ID")
+
 
 class ReportInput(BaseModel):
     title: str = Field(..., min_length=1, max_length=100)
@@ -32,15 +40,16 @@ class ReportInput(BaseModel):
             raise ValueError("Title must not contain path characters")
         return v
 
+
 @mcp.tool()
 def search_documents(query: str) -> str:
     """
     Search through operations documents for content matching the query.
     Returns matching document names and relevant excerpts.
-    
+
     Args:
         query: A search term or question to look for in the documents.
-    
+
     Returns:
         A formatted string listing matching documents and their excerpts.
     """
@@ -53,18 +62,20 @@ def search_documents(query: str) -> str:
 
     query_lower = query.lower()
     results = []
-    
+
     for doc_path in DATA_DIR.glob("*.txt"):
         content = doc_path.read_text(encoding="utf-8")
         if query_lower in content.lower():
             # Return first 300 chars of matching content as excerpt
             lines = [l for l in content.splitlines() if query_lower in l.lower()]
             excerpt = lines[0][:300] if lines else content[:300]
-            results.append(f"[{doc_path.name}]: {excerpt}")
-    
+            # Layer 1 guardrail: redact injection payloads before returning to LLM
+            safe_excerpt = _sanitize_content(excerpt)
+            results.append(f"[{doc_path.name}]: {safe_excerpt}")
+
     if not results:
         return f"No documents found matching '{query}'."
-    
+
     return "\n\n".join(results)
 
 
@@ -72,10 +83,10 @@ def search_documents(query: str) -> str:
 def read_record(record_id: int) -> str:
     """
     Read a specific inventory or order record by its numeric ID.
-    
+
     Args:
         record_id: The integer ID of the record to retrieve.
-    
+
     Returns:
         A formatted string of the record's fields, or an error if not found.
     """
@@ -84,13 +95,13 @@ def read_record(record_id: int) -> str:
         record_id = validated.record_id
     except ValueError as e:
         return f"Error: {e}"
-    
+
     with open(CSV_PATH, newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for row in reader:
             if int(row["id"]) == record_id:
                 return "\n".join(f"{k}: {v}" for k, v in row.items())
-    
+
     return f"Error: No record found with id={record_id}."
 
 
@@ -98,11 +109,11 @@ def read_record(record_id: int) -> str:
 def save_report(title: str, content: str) -> str:
     """
     Save a markdown report to the outputs folder.
-    
+
     Args:
         title: The title of the report (used as filename). Alphanumeric and spaces only.
         content: The full markdown content of the report.
-    
+
     Returns:
         Confirmation message with the saved file path.
     """
@@ -112,19 +123,21 @@ def save_report(title: str, content: str) -> str:
         content = validated.content
     except ValueError as e:
         return f"Error: {e}"
-    
+
     # Sanitize filename — no path traversal
     safe_title = re.sub(r"[^a-zA-Z0-9 _-]", "", title).strip().replace(" ", "_")
     if not safe_title:
         return "Error: title contains no valid characters."
-    
+
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"{safe_title}_{timestamp}.md"
     output_path = OUTPUTS_DIR / filename
-    
+
     output_path.write_text(content, encoding="utf-8")
     return f"Report saved to: outputs/{filename}"
 
 
 if __name__ == "__main__":
-    mcp.run()
+    # Run as an SSE server on http://localhost:8000/sse
+    # Start with: uv run python server/mcp_server.py
+    mcp.run(transport="sse")
