@@ -1,24 +1,23 @@
 import sys
 from datetime import datetime
-from opentelemetry import trace, context as otel_context
+
+from dotenv import load_dotenv
+from langfuse.decorators import langfuse_context, observe
+from opentelemetry import context as otel_context
+from opentelemetry import trace
 
 from crewai import Crew, Process
 from crewai_tools import MCPServerAdapter
-from dotenv import load_dotenv
 
-from utils.logging_utils import Tee
-from utils.patches import apply_patches
-from utils.injection_guard import assert_clean
-from utils.trace_writer import write_trace
-from utils.reporting import write_run_report
+from patches import apply_patches
+from telemetry import setup_telemetry, shutdown_telemetry
+from utils import Tee, assert_clean, write_run_report, write_trace
 
 from .agents import FETCH_SERVER_PARAMS, SERVER_PARAMS, build_agents
 from .tasks import build_tasks
 
 load_dotenv()
 apply_patches()
-
-from langfuse.decorators import observe, langfuse_context
 
 
 @observe(name="crew.run")
@@ -83,12 +82,6 @@ def run_crew(question: str) -> str:
 
 
 if __name__ == "__main__":
-    from dotenv import load_dotenv
-
-    load_dotenv()
-
-    from utils.telemetry import setup_telemetry, shutdown_telemetry
-
     setup_telemetry()
 
     question = sys.argv[1] if len(sys.argv) > 1 else "What is the return policy?"

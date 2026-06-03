@@ -6,7 +6,7 @@ from crewai import Agent
 from crewai_tools import MCPServerAdapter
 from mcp import StdioServerParameters
 
-from .llm_config import llama_instant, llama_versatile
+from llm_core import get_llama_instant, get_llama_versatile
 
 # Primary MCP server — connects via SSE (must be running before the crew starts)
 # Start it with: uv run python server/mcp_server.py
@@ -40,7 +40,7 @@ def build_agents(mcp_tools: list, fetch_tools: list) -> tuple[Agent, Agent, Agen
     researcher = Agent(
         config=config["researcher"],
         tools=researcher_tools,
-        llm=llama_instant,
+        llm=get_llama_instant(),
         max_iter=5,  # prevent infinite loops
         verbose=True,
     )
@@ -48,7 +48,7 @@ def build_agents(mcp_tools: list, fetch_tools: list) -> tuple[Agent, Agent, Agen
     writer = Agent(
         config=config["writer"],
         tools=writer_tools,
-        llm=llama_versatile,
+        llm=get_llama_versatile(),
         max_iter=3,
         verbose=True,
     )
@@ -56,7 +56,7 @@ def build_agents(mcp_tools: list, fetch_tools: list) -> tuple[Agent, Agent, Agen
     fact_checker = Agent(
         config=config["fact_checker"],
         tools=checker_tools,
-        llm=llama_instant,
+        llm=get_llama_instant(),
         max_iter=3,
         verbose=True,
     )

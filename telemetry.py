@@ -20,7 +20,9 @@ def setup_telemetry():
     """Initialize OpenTelemetry providers and Litellm callback."""
     global _tracer_provider, _logger_provider
 
-    otel_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317")
+    from config import ensure_env
+
+    otel_endpoint = ensure_env("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317")
     resource = Resource(attributes={"service.name": "operations-assistant-crew"})
 
     # Trace configuration

@@ -45,6 +45,8 @@ The Operations Assistant automates the most time-consuming aspects of research a
 > **Net Annual Savings = ₹13.1 Lakhs**
 > (₹19.5 Lakhs - ₹6.4 Lakhs)
 
+![Total Annual Operational Cost](../assets/operational_cost.png)
+
 ### 4. Advanced Financial Metrics
 
 To provide a realistic and conservative business case, we must factor in the actual costs of building, deploying, and maintaining AI software. Assuming a one-time implementation/setup cost of **₹5.0 Lakhs** (for engineering and training) and an ongoing annual software/maintenance cost of **₹2.5 Lakhs**:
@@ -54,5 +56,11 @@ To provide a realistic and conservative business case, we must factor in the act
 * **Return on Investment (Year 1 ROI):** **108%** (₹8.1 Lakhs / ₹7.5 Lakhs)
 * **Payback Period:** **4.6 Months** (Initial ₹5.0L setup divided by ₹1.09L monthly net savings)
 * **EBITDA Impact:** By reducing operational expenditures (OPEX) without sacrificing output, the solution generates a direct, ongoing annual EBITDA uplift of **₹13.1 Lakhs**.
+
+![Year 1 Investment vs. Net Profit](../assets/roi_summary.png)
+
+![Year 1 Financial Flow & Payback](../assets/payback_period.png)
+
+![Annual EBITDA Transformation](../assets/ebitda_impact.png)
 
 By deploying this automation, a standard 5-person operations team can save approximately **₹13.1 Lakhs annually**. A 108% Year-1 ROI and a 4.6-month payback period represent a highly realistic yet exceptional return for enterprise software investments.

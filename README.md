@@ -95,22 +95,22 @@ graph TD
     Crew --> RW
 
     subgraph MCPServers["MCP Servers"]
-        Fetch["Fetch Server<br/>(Stdio)"]
-        Core["Core Operations Server<br/>(SSE: localhost:8000)"]
+        Fetch["Fetch Server (Stdio)"]
+        Core["Core Operations Server (SSE: localhost:8000)"]
         class Core,Fetch yellowL3;
     end
     class MCPServers mainSubgraph;
 
     subgraph FetchTools["Fetch Tools (Stdio)"]
-        fetch_url["fetch_url<br/>Reads Web HTML"]
+        fetch_url["fetch_url - Reads Web HTML"]
         class fetch_url greenL4;
     end
     class FetchTools mainSubgraph;
 
     subgraph CoreTools["Core Tools (SSE)"]
-        search_documents["search_documents<br/>Reads data/documents/"]
-        read_record["read_record<br/>Reads inventory.csv"]
-        save_report["save_report<br/>Writes to outputs/"]
+        search_documents["search_documents - Reads data/documents/"]
+        read_record["read_record - Reads inventory.csv"]
+        save_report["save_report - Writes to outputs/"]
         class search_documents,read_record,save_report greenL4;
     end
     class CoreTools mainSubgraph;
@@ -128,8 +128,6 @@ graph TD
     OR -->|"Uses"| search_documents
     OR -->|"Uses"| read_record
 
-    FC -->|"Uses"| search_documents
-    FC -->|"Uses"| read_record
     FC -->|"Uses"| save_report
 
     RW -->|"Synthesises"| Draft
@@ -147,6 +145,79 @@ Agents in the crew are specialized:
 - **Operations Researcher**: Equipped with the `fetch_url` tool to gather external web context, plus `search_documents` and `read_record` for internal details.
 - **Report Writer**: Synthesises the Researcher's findings into a clean, structured Markdown report.
 - **Fact Checker**: Cross-references the draft report against retrieved evidence, corrects unsupported claims, and gates saving behind human approval (HITL).
+
+### Agent Workflow Sequence
+
+```mermaid
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'background': 'transparent',
+    'primaryColor': '#06B6D4',
+    'primaryTextColor': '#000000',
+    'primaryBorderColor': '#0891B2',
+    'lineColor': '#94A3B8',
+    'signalColor': '#38BDF8',
+    'signalTextColor': '#FFFFFF',
+    'noteBkgColor': '#8B5CF6',
+    'noteTextColor': '#FFFFFF',
+    'noteBorderColor': '#7C3AED',
+    'actorBkg': '#F59E0B',
+    'actorTextColor': '#000000',
+    'actorBorder': '#D97706',
+    'activationBkgColor': '#1E293B',
+    'activationBorderColor': '#06B6D4'
+  }
+}}%%
+sequenceDiagram
+    autonumber
+    actor User
+    participant Crew as CrewAI Core
+    participant OR as Operations Researcher
+    participant RW as Report Writer
+    participant FC as Fact Checker
+    participant MCP as MCP Tools (Fetch/SSE)
+
+    User->>Crew: Submits business question
+
+    Note over Crew,OR: Step 1: Research Phase
+    Crew->>OR: Assigns Research Task
+    activate OR
+    OR->>MCP: fetch_url (External Data)
+    OR->>MCP: search_documents (Local SOPs)
+    OR->>MCP: read_record (Inventory CSV)
+    MCP-->>OR: Returns retrieved context & data
+    OR-->>Crew: Returns Raw Research Findings
+    deactivate OR
+
+    Note over Crew,RW: Step 2: Synthesis Phase
+    Crew->>RW: Assigns Report Writing Task (with Research)
+    activate RW
+    RW->>RW: Synthesizes findings into Markdown
+    RW-->>Crew: Returns Draft Operations Report
+    deactivate RW
+
+    Note over Crew,FC: Step 3: Verification & Output
+    Crew->>FC: Assigns Fact Checking Task (with Draft & Research)
+    activate FC
+    FC->>FC: Cross-references claims against evidence
+    FC-->>User: Prompts for Human Approval (HITL)
+
+    alt User Approves
+        User-->>FC: Approves Draft ("y" or Enter)
+        FC->>MCP: save_report (Writes to outputs/)
+        MCP-->>FC: Confirms Save
+        FC-->>Crew: Returns Final Result
+    else User Rejects / Edits
+        User-->>FC: Provides feedback/corrections
+        FC->>FC: Adjusts report based on feedback
+        FC->>MCP: save_report (Writes to outputs/)
+        FC-->>Crew: Returns Corrected Result
+    end
+    deactivate FC
+
+    Crew-->>User: Returns Final System Output
+```
 
 ## Sample Data
 The repository includes a set of sample data used by the MCP servers to answer operations questions:

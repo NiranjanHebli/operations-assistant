@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field, field_validator
 
 # Allow importing utils from the project root
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from utils.injection_guard import sanitize as _sanitize_content
+from utils import sanitize as _sanitize_content
 
 DATA_DIR = Path(__file__).parent.parent / "data" / "documents"
 CSV_PATH = Path(__file__).parent.parent / "data" / "inventory.csv"
