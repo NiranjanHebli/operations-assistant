@@ -13,8 +13,17 @@
 ## What It Does
 This is a multi-agent AI system (CrewAI) integrated with multiple Model Context Protocol (MCP) servers. The Assistant helps operations teams answer business questions automatically by querying local text documents, inventory data, and fetching external web resources.
 
-### Use Case diagram
-![Standard Use Case Diagram](./assets/standard_use_case.png)
+## Demo & Pitch Videos
+
+### Pitch Presentation (Idea, Pain Points & Solution)
+This video walks through the business pain points of manual operations research, the core concept behind the Operations Assistant, our multi-agent solution, and target use cases.
+
+[![Watch the video](https://cdn.loom.com/sessions/thumbnails/36be91ddba8e41c184f246e3d31eb264-2e248f0756f81a36.gif)](https://www.loom.com/share/36be91ddba8e41c184f246e3d31eb264)
+
+### Live System Demo (Technical Walkthrough)
+This video demonstrates the working system end-to-end, showing the multi-agent execution, tools usage via MCP, human-in-the-loop validation, and generated outputs.
+
+[![Watch the video](https://cdn.loom.com/sessions/thumbnails/e008d887287b4cb5a7595cfb49b5570f-3506973381462012.gif)](https://www.loom.com/share/e008d887287b4cb5a7595cfb49b5570f)
 
 ## Use Cases
 The Operations Assistant is designed to address key operational challenges across various business workflows:
@@ -22,6 +31,9 @@ The Operations Assistant is designed to address key operational challenges acros
 - **Inventory Check & Verification**: Reading and analyzing structured data records (e.g., querying product lines in `data/inventory.csv` using the `read_record` tool) to verify stock levels, product specifications, and pricing.
 - **Outbound Web Research & Market Intelligence**: Utilizing the Stdio Fetch Server to parse external HTML pages, allowing operations teams to pull current competitor pricing, shipping options, or external vendor terms.
 - **Fact-Checked Operations Reports**: Generating structured reports (saved to the `outputs/` folder) with automated fact-checking and Human-in-the-Loop approval to prevent hallucinations in operational decisions.
+
+### Use Case Diagram
+![Standard Use Case Diagram](./assets/standard_use_case.png)
 
 ## Quick Start
 
@@ -234,7 +246,7 @@ Start the server first, then connect the inspector to it:
 uv run python server/mcp_server.py
 
 # Terminal 2 — connect inspector
-npx @modelcontextprotocol/inspector --cli http://localhost:8000/sse --transport sse
+npx @modelcontextprotocol/inspector --transport sse --server-url http://127.0.0.1:8000/sse
 ```
 
 **Fetch Server (Stdio mode):**
@@ -250,6 +262,12 @@ uv run pytest tests/ -v
 
 ## Observability & Custom Tracing
 This project integrates OpenTelemetry to monitor agent workflows and track LLM calls, latency, and token usage, utilizing both local Aspire Dashboard and cloud Langfuse tracking.
+
+### Langfuse Tracing Dashboard
+![Langfuse Dashboard](./assets/langfuse_dashboard.png)
+
+### Aspire Structured Logs
+![Aspire Dashboard](./assets/aspire_dashboard.png)
 
 1. **Start the Aspire Dashboard:**
    Make sure you have Docker installed and running, then spin up the dashboard container:

@@ -10,7 +10,7 @@ from llm_core import get_llama_instant, get_llama_versatile
 
 # Primary MCP server — connects via SSE (must be running before the crew starts)
 # Start it with: uv run python server/mcp_server.py
-SERVER_PARAMS = {"url": "http://localhost:8000/sse"}
+SERVER_PARAMS = {"url": "http://127.0.0.1:8000/sse"}
 
 # Secondary fetch server — still uses Stdio (spawned inline by MCPServerAdapter)
 FETCH_SERVER_PARAMS = StdioServerParameters(
