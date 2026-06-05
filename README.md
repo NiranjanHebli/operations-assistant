@@ -297,3 +297,4 @@ Additional design documentation and reflections are available in the [docs/](./d
 - [Decision Log](./docs/decision_log.md): Outlines architectural decisions, framework selections, and alternatives considered or rejected.
 - [Reflection](./docs/reflection.md): Post-build reflection covering agent roles, connection debugging, security mitigations, and production readiness guidelines.
 - [AI Usage Log](./docs/ai_usage_log.md): Documentation of AI interactions applied during development.
+- [Data & Examples](./docs/data_and_examples.md): Sample data and example questions with saved outputs.
